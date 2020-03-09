@@ -1,0 +1,9 @@
+# Project exclude paths
+/out/
+/target/
+.idea
+/FirstDeltaV(i).xls
+/FirstDeltaV(r).xls
+/SecondDeltaV(i).xls
+/SecondDeltaV(r).xls
+/ubirayev.iml
