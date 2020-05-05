@@ -216,10 +216,10 @@ public class App {
       double deltaV2 = sqrt(pow(Va1, 2) + pow(Va2, 2) - 2 * Va1 * Va2 * cos(radian));
       double deltaV3 = sqrt(k / R) * (sqrt((2.0 * ra) / (ra + R)) - 1.0);
       double deltaVsum = deltaV1 + deltaV2 + deltaV3;
-      deltaV1List.add(new XYDataItem(radian, deltaV1));
-      deltaV2List.add(new XYDataItem(radian, deltaV2));
-      deltaV3List.add(new XYDataItem(radian, deltaV3));
-      deltaVsumList.add(new XYDataItem(radian, deltaVsum));
+      deltaV1List.add(new XYDataItem(i, deltaV1));
+      deltaV2List.add(new XYDataItem(i, deltaV2));
+      deltaV3List.add(new XYDataItem(i, deltaV3));
+      deltaVsumList.add(new XYDataItem(i, deltaVsum));
       deltaViFile
           .write(i + "\t" + deltaV1 + "\t" + deltaV2 + "\t" + deltaV3 + "\t" + deltaVsum + "\n");
     }
@@ -260,10 +260,10 @@ public class App {
       double deltaV3 = sqrt(
           pow(Vk, 2) + pow(Vp2, 2) - 2 * Vk * Vp2 * cos(radian - radian1 - radian2));
       double deltaVsum = deltaV1 + deltaV2 + deltaV3;
-      deltaV1List.add(new XYDataItem(radian, deltaV1));
-      deltaV2List.add(new XYDataItem(radian, deltaV2));
-      deltaV3List.add(new XYDataItem(radian, deltaV3));
-      deltaVsumList.add(new XYDataItem(radian, deltaVsum));
+      deltaV1List.add(new XYDataItem(i, deltaV1));
+      deltaV2List.add(new XYDataItem(i, deltaV2));
+      deltaV3List.add(new XYDataItem(i, deltaV3));
+      deltaVsumList.add(new XYDataItem(i, deltaVsum));
       deltaViFile
           .write(i + "\t" + deltaV1 + "\t" + deltaV2 + "\t" + deltaV3 + "\t" + deltaVsum + "\n");
     }
