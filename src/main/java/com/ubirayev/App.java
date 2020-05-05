@@ -1,17 +1,11 @@
 package com.ubirayev;
 
-import java.awt.AWTEvent;
 import java.awt.event.WindowEvent;
-import org.jfree.data.xy.XYDataItem;
 
 import javax.swing.*;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import static java.lang.Math.*;
 import static java.lang.Math.sqrt;
