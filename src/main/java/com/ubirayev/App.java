@@ -1,5 +1,7 @@
 package com.ubirayev;
 
+import java.awt.AWTEvent;
+import java.awt.event.WindowEvent;
 import org.jfree.data.xy.XYDataItem;
 
 import javax.swing.*;
@@ -16,24 +18,34 @@ import static java.lang.Math.sqrt;
 
 public class App {
 
+  private static JFrame frame = new JFrame();
+
   private final Integer rDefault = 6570;
   private final Integer RDefault = 42164;
   private final Integer raDefault = 50000;
+  private final Integer i1Default = 2;
+  private final Integer i2Default = 2;
+  private final Integer I = 51;
 
   private JPanel mainPanel;
   private JTextField textFieldr;
   private JTextField textFieldR;
   private JButton computeButton;
   private JTextField textFieldra;
+  private JTextField textFieldi1;
+  private JTextField textFieldi2;
 
   private App() {
     textFieldr.setText(String.valueOf(rDefault));
     textFieldR.setText(String.valueOf(RDefault));
     textFieldra.setText(String.valueOf(raDefault));
+    textFieldi1.setText(String.valueOf(i1Default));
+    textFieldi2.setText(String.valueOf(i2Default));
 
     computeButton.addActionListener(e -> {
       try {
         compute();
+        frame.dispatchEvent(new WindowEvent(frame, WindowEvent.WINDOW_CLOSING));
       } catch (IOException ex) {
         ex.printStackTrace();
       }
@@ -41,7 +53,6 @@ public class App {
   }
 
   public static void main(String[] args) {
-    JFrame frame = new JFrame();
     frame.setContentPane(new App().mainPanel);
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     frame.pack();
@@ -54,198 +65,32 @@ public class App {
     double R = Double.parseDouble(textFieldR.getText());
     double ra = Double.parseDouble(textFieldra.getText());
 
-//    first(k, r, R);
-//    second(k, r, R);
-//    third(k, r, R);
-    threeImpulsesFirst(k, r, R, ra);
-    threeImpulsesSecond(k, r, R, ra);
+    BufferedWriter deltaVFile = new BufferedWriter(new FileWriter("ThreeImpulses.xls"));
+    deltaVFile.write("\t ΔV1 \t ΔV2 \t ΔV3 \t ΔV \n");
+
+    threeImpulsesFirst(k, r, R, ra, deltaVFile);
+    threeImpulsesSecond(k, r, R, ra, deltaVFile);
+    deltaVFile.close();
   }
 
-  private static void first(double k, double r, double R) throws IOException {
-    BufferedWriter deltaViFile = new BufferedWriter(new FileWriter("FirstDeltaV(i).xls"));
-    BufferedWriter deltaVrFile = new BufferedWriter(new FileWriter("FirstDeltaV(r).xls"));
-    deltaViFile.write("i \t deltaV1 \t deltaV2 \t deltaVsum\n");
-    deltaVrFile.write("r \t deltaV1 \t deltaV2 \t deltaVsum\n");
-
-    Map<String, List<XYDataItem>> series = new HashMap<>();
-    List<XYDataItem> deltaV1List = new ArrayList<>();
-    List<XYDataItem> deltaV2List = new ArrayList<>();
-    List<XYDataItem> deltaVsumList = new ArrayList<>();
-    for (double i = 1.0; i <= 51.0; i++) {
-      double radian = Math.toRadians(i);
-      double deltaV1 = sqrt(k / r) * (sqrt(2.0 * R / (R + r)) - 1.0);
-      double deltaV2 = sqrt(
-          k / R + 2.0 * k * r / R / (R + r) - 2.0 * sqrt(k / R) * sqrt(2.0 * k * r / R / (R + r))
-              * cos(radian));
-      double deltaVsum = deltaV1 + deltaV2;
-      deltaV1List.add(new XYDataItem(radian, deltaV1));
-      deltaV2List.add(new XYDataItem(radian, deltaV2));
-      deltaVsumList.add(new XYDataItem(radian, deltaVsum));
-      deltaViFile.write(i + "\t" + deltaV1 + "\t" + deltaV2 + "\t" + deltaVsum + "\n");
-    }
-    series.put("deltaV1", deltaV1List);
-    series.put("deltaV2", deltaV2List);
-    series.put("deltaVsum", deltaVsumList);
-    new PlotFrame(series, "First", "i", "V(i)");
-
-    series = new HashMap<>();
-    deltaV1List = new ArrayList<>();
-    deltaV2List = new ArrayList<>();
-    deltaVsumList = new ArrayList<>();
-    double radian = Math.toRadians(51.0);
-    for (double rwave = 1.0; rwave <= 26; rwave++) {
-      R = r * rwave;
-      double deltaV1 = sqrt(k / r) * (sqrt(2.0 * R / (R + r)) - 1.0);
-      double deltaV2 = sqrt(
-          k / R + 2.0 * k * r / R / (R + r) - 2.0 * sqrt(k / R) * sqrt(2.0 * k * r / R / (R + r))
-              * cos(radian));
-      double deltaVsum = deltaV1 + deltaV2;
-      deltaV1List.add(new XYDataItem(rwave, deltaV1));
-      deltaV2List.add(new XYDataItem(rwave, deltaV2));
-      deltaVsumList.add(new XYDataItem(rwave, deltaVsum));
-      deltaVrFile.write(rwave + "\t" + deltaV1 + "\t" + deltaV2 + "\t" + deltaVsum + "\n");
-    }
-
-    series.put("deltaV1", deltaV1List);
-    series.put("deltaV2", deltaV2List);
-    series.put("deltaVsum", deltaVsumList);
-    new PlotFrame(series, "First", "r", "V(r)");
-
-    deltaViFile.close();
-    deltaVrFile.close();
+  private void threeImpulsesFirst(double k, double r, double R, double ra,
+      BufferedWriter deltaVFile) throws IOException {
+    double radian = Math.toRadians(I);
+    double deltaV1 = sqrt(k / r) * (sqrt(2.0 * ra / (ra + r)) - 1.0);
+    double Va1 = sqrt(k / ra) * sqrt((2.0 * r) / (ra + r));
+    double Va2 = sqrt(k / ra) * sqrt((2.0 * R) / (ra + R));
+    double deltaV2 = sqrt(pow(Va1, 2) + pow(Va2, 2) - 2 * Va1 * Va2 * cos(radian));
+    double deltaV3 = sqrt(k / R) * (sqrt((2.0 * ra) / (ra + R)) - 1.0);
+    double deltaVsum = deltaV1 + deltaV2 + deltaV3;
+    deltaVFile.write(
+        "First:" + "\t" + deltaV1 + "\t" + deltaV2 + "\t" + deltaV3 + "\t" + deltaVsum + "\n");
   }
 
-  static void second(double k, double r, double R) throws IOException {
-    BufferedWriter deltaViFile = new BufferedWriter(new FileWriter("SecondDeltaV(i).xls"));
-    BufferedWriter deltaVrFile = new BufferedWriter(new FileWriter("SecondDeltaV(r).xls"));
-    deltaViFile.write("i \t deltaV1 \t deltaV2 \t deltaVsum\n");
-    deltaVrFile.write("r \t deltaV1 \t deltaV2 \t deltaVsum\n");
-
-    Map<String, List<XYDataItem>> series = new HashMap<>();
-    List<XYDataItem> deltaV1List = new ArrayList<>();
-    List<XYDataItem> deltaV2List = new ArrayList<>();
-    List<XYDataItem> deltaVsumList = new ArrayList<>();
-    for (double i = 1.0; i <= 51.0; i++) {
-      double radian = Math.toRadians(i);
-      double deltaV1 = sqrt(
-          k / r + 2 * k * R / r / (R + r) - 2 * sqrt(k / r) * sqrt(2 * k * R / r / (R + r)) * cos(
-              radian));
-      double deltaV2 = sqrt(k / R) - sqrt(2.0 * k * r / R / (R + r));
-      double deltaVsum = deltaV1 + deltaV2;
-      deltaV1List.add(new XYDataItem(radian, deltaV1));
-      deltaV2List.add(new XYDataItem(radian, deltaV2));
-      deltaVsumList.add(new XYDataItem(radian, deltaVsum));
-      deltaViFile.write(i + "\t" + deltaV1 + "\t" + deltaV2 + "\t" + deltaVsum + "\n");
-    }
-    series.put("deltaV1", deltaV1List);
-    series.put("deltaV2", deltaV2List);
-    series.put("deltaVsum", deltaVsumList);
-    new PlotFrame(series, "Second", "i", "V(i)");
-
-    series = new HashMap<>();
-    deltaV1List = new ArrayList<>();
-    deltaV2List = new ArrayList<>();
-    deltaVsumList = new ArrayList<>();
-    double radian = Math.toRadians(51.0);
-    for (double rwave = 1.0; rwave <= 26; rwave++) {
-      R = r * rwave;
-      double deltaV1 = sqrt(
-          k / r + 2 * k * R / r / (R + r) - 2 * sqrt(k / r) * sqrt(2 * k * R / r / (R + r)) * cos(
-              radian));
-      double deltaV2 = sqrt(k / R) - sqrt(2.0 * k * r / R / (R + r));
-      double deltaVsum = deltaV1 + deltaV2;
-      deltaV1List.add(new XYDataItem(rwave, deltaV1));
-      deltaV2List.add(new XYDataItem(rwave, deltaV2));
-      deltaVsumList.add(new XYDataItem(rwave, deltaVsum));
-      deltaVrFile.write(rwave + "\t" + deltaV1 + "\t" + deltaV2 + "\t" + deltaVsum + "\n");
-    }
-
-    series.put("deltaV1", deltaV1List);
-    series.put("deltaV2", deltaV2List);
-    series.put("deltaVsum", deltaVsumList);
-    new PlotFrame(series, "Second", "r", "V(r)");
-
-    deltaViFile.close();
-    deltaVrFile.close();
-  }
-
-  static void third(double k, double r, double R) throws IOException {
-    final double I1 = toRadians(2.8071);
-    BufferedWriter deltaViFile = new BufferedWriter(new FileWriter("ThirdDeltaV(i).xls"));
-    deltaViFile.write("i \t deltaV1 \t deltaV2 \t deltaVsum\n");
-
-    Map<String, List<XYDataItem>> series = new HashMap<>();
-    List<XYDataItem> deltaV1List = new ArrayList<>();
-    List<XYDataItem> deltaV2List = new ArrayList<>();
-    List<XYDataItem> deltaVsumList = new ArrayList<>();
-    for (double i = 1.0; i <= 51.0; i++) {
-      double radian = Math.toRadians(i);
-      double deltaV1 = sqrt(
-          k / r + 2 * k * R / (r * (R + r)) - 2 * sqrt(k / r) * sqrt(2 * k * R / (r * (R + r)))
-              * cos(I1));
-      double deltaV2 = sqrt(
-          k / R + 2 * k * r / (R * (R + r)) - 2 * sqrt(k / R) * sqrt(2 * k * r / (R * (R + r)))
-              * cos(radian - I1));
-      double deltaVsum = deltaV1 + deltaV2;
-      deltaV1List.add(new XYDataItem(radian, deltaV1));
-      deltaV2List.add(new XYDataItem(radian, deltaV2));
-      deltaVsumList.add(new XYDataItem(radian, deltaVsum));
-      deltaViFile.write(i + "\t" + deltaV1 + "\t" + deltaV2 + "\t" + deltaVsum + "\n");
-    }
-    series.put("deltaV1", deltaV1List);
-    series.put("deltaV2", deltaV2List);
-    series.put("deltaVsum", deltaVsumList);
-    new PlotFrame(series, "Third", "i", "V(i)");
-  }
-
-
-  private void threeImpulsesFirst(double k, double r, double R, double ra) throws IOException {
-    BufferedWriter deltaViFile = new BufferedWriter(new FileWriter("ThreeImpulses1DeltaV(i).xls"));
-    deltaViFile.write("i \t deltaV1 \t deltaV2 \t deltaV3 \t deltaVsum\n");
-
-    Map<String, List<XYDataItem>> series = new HashMap<>();
-    List<XYDataItem> deltaV1List = new ArrayList<>();
-    List<XYDataItem> deltaV2List = new ArrayList<>();
-    List<XYDataItem> deltaV3List = new ArrayList<>();
-    List<XYDataItem> deltaVsumList = new ArrayList<>();
-    for (double i = 1.0; i <= 51.0; i++) {
-      double radian = Math.toRadians(i);
-      double deltaV1 = sqrt(k / r) * (sqrt(2.0 * ra / (ra + r)) - 1.0);
-      double Va1 = sqrt(k / ra) * sqrt((2.0 * r) / (ra + r));
-      double Va2 = sqrt(k / ra) * sqrt((2.0 * R) / (ra + R));
-      double deltaV2 = sqrt(pow(Va1, 2) + pow(Va2, 2) - 2 * Va1 * Va2 * cos(radian));
-      double deltaV3 = sqrt(k / R) * (sqrt((2.0 * ra) / (ra + R)) - 1.0);
-      double deltaVsum = deltaV1 + deltaV2 + deltaV3;
-      deltaV1List.add(new XYDataItem(i, deltaV1));
-      deltaV2List.add(new XYDataItem(i, deltaV2));
-      deltaV3List.add(new XYDataItem(i, deltaV3));
-      deltaVsumList.add(new XYDataItem(i, deltaVsum));
-      deltaViFile
-          .write(i + "\t" + deltaV1 + "\t" + deltaV2 + "\t" + deltaV3 + "\t" + deltaVsum + "\n");
-    }
-    series.put("deltaV1", deltaV1List);
-    series.put("deltaV2", deltaV2List);
-    series.put("deltaV3", deltaV3List);
-    series.put("deltaVsum", deltaVsumList);
-    new PlotFrame(series, "ThreeImpulses1", "i", "V(i)");
-
-    deltaViFile.close();
-  }
-
-  private void threeImpulsesSecond(double k, double r, double R, double ra) throws IOException {
-    BufferedWriter deltaViFile = new BufferedWriter(new FileWriter("ThreeImpulses2DeltaV(i).xls"));
-    deltaViFile.write("i \t deltaV1 \t deltaV2 \t deltaV3 \t deltaVsum\n");
-
-    Map<String, List<XYDataItem>> series = new HashMap<>();
-    List<XYDataItem> deltaV1List = new ArrayList<>();
-    List<XYDataItem> deltaV2List = new ArrayList<>();
-    List<XYDataItem> deltaV3List = new ArrayList<>();
-    List<XYDataItem> deltaVsumList = new ArrayList<>();
-
-    for (double i = 1.0; i <= 51.0; i++) {
-      double radian = Math.toRadians(i);
-      double radian1 = Math.toRadians(i);
-      double radian2 = Math.toRadians(i);
+  private void threeImpulsesSecond(double k, double r, double R, double ra,
+      BufferedWriter deltaVFile) throws IOException {
+      double radian = Math.toRadians(I);
+      double radian1 = Math.toRadians(Double.parseDouble(textFieldi1.getText()));
+      double radian2 = Math.toRadians(Double.parseDouble(textFieldi2.getText()));
 
       double Vn = sqrt(k / r);
       double Vp1 = sqrt(k / r) * sqrt((2.0 * ra) / (ra + r));
@@ -260,19 +105,7 @@ public class App {
       double deltaV3 = sqrt(
           pow(Vk, 2) + pow(Vp2, 2) - 2 * Vk * Vp2 * cos(radian - radian1 - radian2));
       double deltaVsum = deltaV1 + deltaV2 + deltaV3;
-      deltaV1List.add(new XYDataItem(i, deltaV1));
-      deltaV2List.add(new XYDataItem(i, deltaV2));
-      deltaV3List.add(new XYDataItem(i, deltaV3));
-      deltaVsumList.add(new XYDataItem(i, deltaVsum));
-      deltaViFile
-          .write(i + "\t" + deltaV1 + "\t" + deltaV2 + "\t" + deltaV3 + "\t" + deltaVsum + "\n");
-    }
-    series.put("deltaV1", deltaV1List);
-    series.put("deltaV2", deltaV2List);
-    series.put("deltaV3", deltaV3List);
-    series.put("deltaVsum", deltaVsumList);
-    new PlotFrame(series, "ThreeImpulses2", "i", "V(i)");
-
-    deltaViFile.close();
+      deltaVFile
+          .write("Second:" + "\t" + deltaV1 + "\t" + deltaV2 + "\t" + deltaV3 + "\t" + deltaVsum + "\n");
   }
 }
